@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net/url"
 	"time"
 
 	"github.com/cipepser/bitflyer/src/sdk"
@@ -25,23 +26,23 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fmt.Println(req)
+	// fmt.Println(req)
 	//
-	// values := url.Values{}
-	// values.Add("product_code", "FX_BTC_JPY")
-	// req.URL.RawQuery = values.Encode()
-	//
-	// resp, err := c.HTTPClient.Do(req)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	//
-	// board := Board{}
-	// err = decodeBody(resp, &board)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	//
-	// fmt.Println(board)
+	values := url.Values{}
+	values.Add("product_code", "FX_BTC_JPY")
+	req.URL.RawQuery = values.Encode()
+
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	board := sdk.Board{}
+	err = sdk.DecodeBody(resp, &board)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println(board)
 
 }

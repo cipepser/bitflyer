@@ -69,7 +69,7 @@ func (c *Client) NewRequest(ctx context.Context, method, spath string, body io.R
 	return req, nil
 }
 
-func decodeBody(resp *http.Response, out interface{}) error {
+func DecodeBody(resp *http.Response, out interface{}) error {
 	defer resp.Body.Close()
 
 	dec := json.NewDecoder(resp.Body)
