@@ -49,7 +49,7 @@ func NewClient(urlStr, username, password string, logger *log.Logger) (*Client, 
 	return c, err
 }
 
-func (c *Client) newRequest(ctx context.Context, method, spath string, body io.Reader) (*http.Request, error) {
+func (c *Client) NewRequest(ctx context.Context, method, spath string, body io.Reader) (*http.Request, error) {
 	u := *c.URL
 	u.Path = path.Join(c.URL.Path, spath)
 

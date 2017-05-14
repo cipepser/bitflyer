@@ -14,16 +14,18 @@ func main() {
 	u := "https://api.bitflyer.jp/"
 	c, _ := sdk.NewClient(u, "user", "passwd", nil)
 
-	fmt.Println(c)
+	fmt.Printf("%T", c)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	var body io.Reader
-	req, err := c.newRequest(ctx, "GET", "v1/board", body)
+	req, err := c.NewRequest(ctx, "GET", "v1/board", body)
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	fmt.Println(req)
 	//
 	// values := url.Values{}
 	// values.Add("product_code", "FX_BTC_JPY")
