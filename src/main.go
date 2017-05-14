@@ -1,48 +1,42 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	"net/http"
+	"io"
+	"log"
 	"net/url"
-
-	"github.com/pkg/errors"
+	"time"
 )
 
-type Client struct {
-	Url        *url.URL
-	HTTPClient *http.Client
-
-	Username, Password, Coin string
-}
-
-func NewClient(urlStr, username, password, coin string) (*Client, error) {
-	if len(username) == 0 {
-		return nil, errors.New("missing username")
-	}
-	if len(password) == 0 {
-		return nil, errors.New("missing password")
-	}
-	if len(coin) == 0 {
-		return nil, errors.New("missing coin")
-	}
-
-	parsedURL, err := url.ParseRequestURI(urlStr)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to parse url: %s", urlStr)
-	}
-
-	c := new(Client)
-	c.Url = urlStr
-	c.Username = username
-	c.Password = password
-	c.Coin = coin
-
-	return &c
-}
-
 func main() {
-	Url, err := url.Parse("https://example.com")
-	c := NewClient(&Url, "hoge", "fuga", "btc")
+	u := "https://api.bitflyer.jp/"
+	c, _ := NewClient(u, "user", "passwd", nil)
 
-	fmt.Printf("%s, %s, %s", c.Username, c.Password, c.Coin)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	var body io.Reader
+	req, err := c.newRequest(ctx, "GET", "v1/board", body)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	values := url.Values{}
+	values.Add("product_code", "FX_BTC_JPY")
+	req.URL.RawQuery = values.Encode()
+
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	board := Board{}
+	err = decodeBody(resp, &board)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println(board)
+
 }
