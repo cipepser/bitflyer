@@ -2,13 +2,19 @@ package sdk
 
 import (
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"path"
+	"strconv"
+	"time"
 
 	"github.com/pkg/errors"
 )
@@ -64,7 +70,18 @@ func (c *Client) NewRequest(ctx context.Context, method, spath string, body io.R
 	// req.SetBasicAutho(c.Username, c.Password)
 
 	// ヘッダ情報
-	// req.Header.Set("", "")
+	// if method == "POST" {
+	key := os.Getenv("BFKEY")
+	secret := os.Getenv("BFSECRET")
+
+	timestamp := strconv.Itoa(int(time.Now().Unix()))
+	sign := MakeHMAC(timestamp+method+spath, secret)
+
+	req.Header.Set("ACCESS-KEY", key)
+	req.Header.Set("ACCESS-TIMESTAMP", timestamp)
+	req.Header.Set("ACCESS-SIGN", sign)
+	req.Header.Set("Content-Type", "application/json")
+	// }
 
 	return req, nil
 }
@@ -75,4 +92,14 @@ func DecodeBody(resp *http.Response, out interface{}) error {
 	dec := json.NewDecoder(resp.Body)
 
 	return dec.Decode(out)
+}
+
+func MakeHMAC(msg, key string) string {
+	mac := hmac.New(sha256.New, []byte(key))
+	mac.Write([]byte(msg))
+	return hex.EncodeToString(mac.Sum(nil))
+}
+
+func GetBoard() {
+
 }
