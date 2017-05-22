@@ -5,9 +5,9 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
-	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"strconv"
 	"time"
@@ -37,8 +37,35 @@ type Board struct {
 }
 
 // GetBoard gets makert board information.
-func GetBoard() {
+func GetBoard(prodcut string) Board {
+	c, _ := NewClient(URL, "user", "passwd", nil)
 
+	ctx, cancel := context.WithTimeout(context.Background(), timeout*time.Second)
+	defer cancel()
+
+	method := "GET"
+	spath := "/v1/getboard"
+	req, err := c.NewRequest(ctx, method, spath, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	values := url.Values{}
+	values.Add("product_code", prodcut)
+	req.URL.RawQuery = values.Encode()
+
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	board := Board{}
+	err = DecodeBody(resp, &board)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return board
 }
 
 // ************** private API **************
@@ -52,7 +79,7 @@ type Collateral struct {
 }
 
 // GetCollateral gets your private collateral information.
-func GetCollateral() {
+func GetCollateral() Collateral {
 	c, _ := NewClient(URL, "user", "passwd", nil)
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout*time.Second)
@@ -78,7 +105,7 @@ func GetCollateral() {
 		log.Fatal(err)
 	}
 
-	fmt.Println(collateral)
+	return collateral
 }
 
 // SetPrivateHeader sets authentication header to req.
