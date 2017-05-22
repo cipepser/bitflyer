@@ -11,8 +11,6 @@ import (
 	"os"
 	"strconv"
 	"time"
-
-	"github.com/cipepser/bitflyer/src/sdk"
 )
 
 const (
@@ -100,7 +98,7 @@ func GetCollateral() Collateral {
 	}
 
 	collateral := Collateral{}
-	err = sdk.DecodeBody(resp, &collateral)
+	err = DecodeBody(resp, &collateral)
 	if err != nil {
 		log.Fatal(err)
 	}
