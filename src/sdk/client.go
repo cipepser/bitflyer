@@ -2,23 +2,18 @@ package sdk
 
 import (
 	"context"
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
-	"os"
 	"path"
-	"strconv"
-	"time"
 
 	"github.com/pkg/errors"
 )
 
+// Client have common http client for some api.
 type Client struct {
 	URL                *url.URL
 	HTTPClient         *http.Client
@@ -26,6 +21,7 @@ type Client struct {
 	Logger             *log.Logger
 }
 
+// NewClient is a constructor of Client.
 func NewClient(urlStr, username, password string, logger *log.Logger) (*Client, error) {
 	if len(username) == 0 {
 		return nil, errors.New("missing username")
@@ -55,6 +51,7 @@ func NewClient(urlStr, username, password string, logger *log.Logger) (*Client, 
 	return c, err
 }
 
+// NewRequest is a wrapper of http.NewRequest which has timeout by context package.
 func (c *Client) NewRequest(ctx context.Context, method, spath string, body io.Reader) (*http.Request, error) {
 	u := *c.URL
 	u.Path = path.Join(c.URL.Path, spath)
@@ -66,40 +63,14 @@ func (c *Client) NewRequest(ctx context.Context, method, spath string, body io.R
 
 	req = req.WithContext(ctx)
 
-	// Basic認証
-	// req.SetBasicAutho(c.Username, c.Password)
-
-	// ヘッダ情報
-	// if method == "POST" {
-	key := os.Getenv("BFKEY")
-	secret := os.Getenv("BFSECRET")
-
-	timestamp := strconv.Itoa(int(time.Now().Unix()))
-	sign := MakeHMAC(timestamp+method+spath, secret)
-
-	req.Header.Set("ACCESS-KEY", key)
-	req.Header.Set("ACCESS-TIMESTAMP", timestamp)
-	req.Header.Set("ACCESS-SIGN", sign)
-	req.Header.Set("Content-Type", "application/json")
-	// }
-
 	return req, nil
 }
 
+// DecodeBody decode http responce to json format which specified by out.
 func DecodeBody(resp *http.Response, out interface{}) error {
 	defer resp.Body.Close()
 
 	dec := json.NewDecoder(resp.Body)
 
 	return dec.Decode(out)
-}
-
-func MakeHMAC(msg, key string) string {
-	mac := hmac.New(sha256.New, []byte(key))
-	mac.Write([]byte(msg))
-	return hex.EncodeToString(mac.Sum(nil))
-}
-
-func GetBoard() {
-
 }
