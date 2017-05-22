@@ -16,11 +16,14 @@ import (
 )
 
 const (
+	// URL is a end point of bitflyer api.
 	URL     = "https://api.bitflyer.jp"
 	timeout = 10
 )
 
-// public API
+// ************** public API **************
+
+// Board is a json struct for market board information.
 type Board struct {
 	MidPrice float64 `json:"mid_price"`
 	Bids     []struct {
@@ -33,11 +36,14 @@ type Board struct {
 	} `json:"asks"`
 }
 
+// GetBoard gets makert board information.
 func GetBoard() {
 
 }
 
-// private API
+// ************** private API **************
+
+// Collateral is a json struct for private collateral information.
 type Collateral struct {
 	Collateral        float64 `json:"collateral"`
 	OpenPositionPnl   float64 `json:"open_position_pnl"`
@@ -45,6 +51,7 @@ type Collateral struct {
 	KeepRate          float64 `json:"keep_rate"`
 }
 
+// GetCollateral gets your private collateral information.
 func GetCollateral() {
 	c, _ := NewClient(URL, "user", "passwd", nil)
 
@@ -65,17 +72,17 @@ func GetCollateral() {
 		log.Fatal(err)
 	}
 
-	fmt.Println(resp)
-
 	collateral := Collateral{}
 	err = sdk.DecodeBody(resp, &collateral)
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(collateral)
 
+	fmt.Println(collateral)
 }
 
+// SetPrivateHeader sets authentication header to req.
+// TODO: implement an authentication with body.
 func SetPrivateHeader(req *http.Request, method, spath string) {
 	key := os.Getenv("BFKEY")
 	secret := os.Getenv("BFSECRET")
@@ -89,6 +96,7 @@ func SetPrivateHeader(req *http.Request, method, spath string) {
 	req.Header.Set("Content-Type", "application/json")
 }
 
+// MakeHMAC returns a HMAC by sha256.
 func MakeHMAC(msg, key string) string {
 	mac := hmac.New(sha256.New, []byte(key))
 	mac.Write([]byte(msg))
