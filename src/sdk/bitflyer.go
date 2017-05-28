@@ -189,6 +189,46 @@ func (c *Client) GetExecutions(product, count, before, after string) []Execution
 
 // ************** private API **************
 
+// Balance is a json struct for your private blance information.
+type Balance struct {
+	CurrencyCode string  `json:"currency_code"`
+	Amount       float64 `json:"amount"`
+	Available    float64 `json:"available"`
+}
+
+// GetBalances returns your private balances information.
+func (c *Client) GetBalances() []Balance {
+	// set timeout timer by context package.
+	ctx, cancel := context.WithTimeout(context.Background(), timeout*time.Second)
+	defer cancel()
+
+	// make new request to get your private collateral information.
+	spath := "/v1/me/getbalance"
+	method := "GET"
+	req, err := c.NewRequest(ctx, method, spath, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// set authentication header to req
+	SetPrivateHeader(req, method, spath, "")
+
+	// send a http request and get a response.
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// decode http response as type []Balance.
+	bs := []Balance{}
+	err = DecodeBody(resp, &bs)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return bs
+}
+
 // Collateral is a json struct for your private collateral information.
 type Collateral struct {
 	Collateral        float64 `json:"collateral"`

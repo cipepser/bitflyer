@@ -21,6 +21,8 @@ const (
 func main() {
 	c, _ := sdk.NewClient(URL, "user", "passwd", nil)
 
+	// ************** public API **************
+
 	// 板情報の取得
 	// b := c.GetBoard("FX_BTC_JPY")
 	// fmt.Println(b)
@@ -30,9 +32,17 @@ func main() {
 	// fmt.Println(t)
 
 	// 約定履歴の取得
-	es := c.GetExecutions("FX_BTC_JPY", "", "", "")
-	for _, e := range es {
-		fmt.Println(e)
+	// es := c.GetExecutions("FX_BTC_JPY", "", "", "")
+	// for _, e := range es {
+	// 	fmt.Println(e)
+	// 	fmt.Println("---------------")
+	// }
+
+	// ************** private API **************
+	// 資産残高を取得
+	bs := c.GetBalances()
+	for _, b := range bs {
+		fmt.Println(b)
 		fmt.Println("---------------")
 	}
 
