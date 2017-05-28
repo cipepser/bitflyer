@@ -13,6 +13,10 @@ import (
 	"github.com/pkg/errors"
 )
 
+const (
+	timeout = 10
+)
+
 // Client have common http client for some api.
 type Client struct {
 	URL                *url.URL

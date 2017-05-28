@@ -5,18 +5,14 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"strconv"
+	"strings"
 	"time"
-)
-
-const (
-	// URL is a end point of bitflyer api.
-	URL     = "https://api.bitflyer.jp"
-	timeout = 10
 )
 
 // ************** public API **************
@@ -34,41 +30,48 @@ type Board struct {
 	} `json:"asks"`
 }
 
-// GetBoard gets makert board information.
-func GetBoard(prodcut string) Board {
-	c, _ := NewClient(URL, "user", "passwd", nil)
-
+// GetBoard returns makert board information.
+// product is a paramter represented the makert you want to get information.
+// e.g. "BTC_JPY", "FX_BTC_JPY", "ETH_BTC".
+func (c *Client) GetBoard(product string) Board {
+	// set timeout timer by context package.
 	ctx, cancel := context.WithTimeout(context.Background(), timeout*time.Second)
 	defer cancel()
 
-	method := "GET"
-	spath := "/v1/getboard"
-	req, err := c.NewRequest(ctx, method, spath, nil)
+	// prepare query parameters.
+	vals := url.Values{}
+	if product != "" {
+		vals.Add("product_code", product)
+	}
+
+	// make new request to get market board information.
+	req, err := c.NewRequest(ctx, "GET", "/v1/getboard", nil)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	values := url.Values{}
-	values.Add("product_code", prodcut)
-	req.URL.RawQuery = values.Encode()
+	// embed vals to URL as query paramters.
+	req.URL.RawQuery = vals.Encode()
 
+	// send a http request and get a response.
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	board := Board{}
-	err = DecodeBody(resp, &board)
+	// decode http response as type Board.
+	b := Board{}
+	err = DecodeBody(resp, &b)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	return board
+	return b
 }
 
 // ************** private API **************
 
-// Collateral is a json struct for private collateral information.
+// Collateral is a json struct for your private collateral information.
 type Collateral struct {
 	Collateral        float64 `json:"collateral"`
 	OpenPositionPnl   float64 `json:"open_position_pnl"`
@@ -76,44 +79,200 @@ type Collateral struct {
 	KeepRate          float64 `json:"keep_rate"`
 }
 
-// GetCollateral gets your private collateral information.
-func GetCollateral() Collateral {
-	c, _ := NewClient(URL, "user", "passwd", nil)
-
+// GetCollateral returns your private collateral information.
+func (c *Client) GetCollateral() Collateral {
+	// set timeout timer by context package.
 	ctx, cancel := context.WithTimeout(context.Background(), timeout*time.Second)
 	defer cancel()
 
-	method := "GET"
+	// make new request to get your private collateral information.
 	spath := "/v1/me/getcollateral"
+	method := "GET"
 	req, err := c.NewRequest(ctx, method, spath, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	SetPrivateHeader(req, method, spath)
+	// set authentication header to req
+	SetPrivateHeader(req, method, spath, "")
 
+	// send a http request and get a response.
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	collateral := Collateral{}
-	err = DecodeBody(resp, &collateral)
+	// decode http response as type Collateral.
+	col := Collateral{}
+	err = DecodeBody(resp, &col)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	return collateral
+	return col
 }
 
+// ChildOrder is a json struct to send new order.
+type ChildOrder struct {
+	ProductCode string `json:"product_code"`
+	// e.g. "BTC_JPY", "FX_BTC_JPY", "ETH_BTC".
+
+	ChildOrderType string `json:"child_order_type"`
+	// "LIMIT"(指値) or "MARKET"(成行).
+
+	Side string `json:"side"`
+	// "BUY" or "SELL".
+
+	Price float64 `json:"price"`
+	Size  float64 `json:"size"`
+
+	MinuteToExpire float64 `json:"minute_to_expire"`
+	// The time your order will be expired, default 43200[min].
+
+	TimeInForce string `json:"time_in_force"`
+	// "GTC", "IOC" or "FOK".
+	// you can confirm the details in "https://lightning.bitflyer.jp/docs/specialorder#執行数量条件".
+}
+
+// ChildOrderResponse is a json struct for the response of func SendNewOrder().
+// type ChildOrderResponse struct {
+// 	ChildOrderAcceptanceID string `json:"child_order_acceptance_id"`
+// }
+
+// SendNewOrder sent a new order to the market.
+// If successfully ordered, returns 0, although it returns -1 when the order is failed.
+func (c *Client) SendNewOrder(co ChildOrder) int {
+	// set timeout timer by context package.
+	ctx, cancel := context.WithTimeout(context.Background(), timeout*time.Second)
+	defer cancel()
+
+	// make body from ChildOrder co.
+	body, err := json.Marshal(co)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// make new request to send order.
+	method := "POST"
+	spath := "/v1/me/sendchildorder"
+	req, err := c.NewRequest(ctx, method, spath, strings.NewReader(string(body)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// set authentication header to req
+	SetPrivateHeader(req, method, spath, string(body))
+
+	// send a http request and get a response.
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if resp.StatusCode == http.StatusOK {
+		return 0
+	}
+
+	return -1
+}
+
+// GetMyOrderResponse is a json struct for the response of func GetMyOrder(),
+// strictly GetMyOrder() returns the slice of GetMyOrderResponse, []GetMyOrderResponse.
+type GetMyOrderResponse struct {
+	ID                     float64 `json:"id"`
+	ChildOrderID           string  `json:"child_order_id"`
+	ProductCode            string  `json:"product_code"`
+	Side                   string  `json:"side"`
+	ChildOrderType         string  `json:"child_order_type"`
+	Price                  float64 `json:"price"`
+	AveragePrice           float64 `json:"average_price"`
+	Size                   float64 `json:"size"`
+	ChildOrderState        string  `json:"child_order_state"`
+	ExpireDate             string  `json:"expire_date"`
+	ChildOrderDate         string  `json:"child_order_date"`
+	ChildOrderAcceptanceID string  `json:"child_order_acceptance_id"`
+	OutstandingSize        float64 `json:"outstanding_size"`
+	CancelSize             float64 `json:"cancel_size"`
+	ExecutedSize           float64 `json:"executed_size"`
+	TotalCommission        float64 `json:"total_commission"`
+}
+
+// GetMyOrder gets the list of your orders.
+// [PARAMTERS]
+// product : makert you want to get information.
+// e.g. "BTC_JPY", "FX_BTC_JPY", "ETH_BTC".
+// count : the number of result.
+// before : get the result which have smaller `id` than the `before`.
+// after : get the result which have bigger `id` than the `after`.
+// childOrderState: the order status you want to get, default "ACTIVE"
+// "ACTIVE", "COMPLETED", "CANCELED", "EXPIRED", "REJECTED"
+func (c *Client) GetMyOrder(product, count, before, after, childOrderState string) []GetMyOrderResponse {
+	// set timeout timer by context package.
+	ctx, cancel := context.WithTimeout(context.Background(), timeout*time.Second)
+	defer cancel()
+
+	// prepare query parameters.
+	vals := url.Values{}
+	if product != "" {
+		vals.Add("product_code", product)
+	}
+	if count != "" {
+		vals.Add("count", count)
+	}
+	if before != "" {
+		vals.Add("before", before)
+	}
+	if after != "" {
+		vals.Add("after", after)
+	}
+	if childOrderState != "" {
+		vals.Add("child_order_state", childOrderState)
+	}
+
+	// make new request to send order.
+	method := "GET"
+	spath := "/v1/me/getchildorders"
+	req, err := c.NewRequest(ctx, method, spath, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// embed vals to URL as query paramters.
+	req.URL.RawQuery = vals.Encode()
+
+	// set authentication header to req
+	SetPrivateHeader(req, method, req.URL.RequestURI(), "")
+
+	// send a http request and get a response.
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// 	fmt.Println(resp.Status)
+	// 	a, _ := ioutil.ReadAll(resp.Body)
+	// 	fmt.Println(string(a))
+
+	// decode http response as type []GetMyOrderResponse.
+	odrs := []GetMyOrderResponse{}
+	err = DecodeBody(resp, &odrs)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return odrs
+}
+
+// TODO: 個別注文キャンセルを実装する
+// TODO: 全注文キャンセルを実装する
+
 // SetPrivateHeader sets authentication header to req.
-// TODO: implement an authentication with body.
-func SetPrivateHeader(req *http.Request, method, spath string) {
+func SetPrivateHeader(req *http.Request, method, spath, body string) {
 	key := os.Getenv("BFKEY")
 	secret := os.Getenv("BFSECRET")
 
 	timestamp := strconv.Itoa(int(time.Now().Unix()))
-	sign := MakeHMAC(timestamp+method+spath, secret)
+	sign := MakeHMAC(timestamp+method+spath+body, secret)
 
 	req.Header.Set("ACCESS-KEY", key)
 	req.Header.Set("ACCESS-TIMESTAMP", timestamp)
