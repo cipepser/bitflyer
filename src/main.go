@@ -42,4 +42,6 @@ func main() {
 	// odrs := c.GetMyOrder("FX_BTC_JPY", "", "", "", "ACTIVE")
 	// fmt.Println(len(odrs))
 
+	// TODO: cancelのふたつを試す
+
 }

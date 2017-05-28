@@ -141,13 +141,13 @@ type ChildOrder struct {
 
 // SendNewOrder sent a new order to the market.
 // If successfully ordered, returns 0, although it returns -1 when the order is failed.
-func (c *Client) SendNewOrder(co ChildOrder) int {
+func (c *Client) SendNewOrder(b ChildOrder) int {
 	// set timeout timer by context package.
 	ctx, cancel := context.WithTimeout(context.Background(), timeout*time.Second)
 	defer cancel()
 
-	// make body from ChildOrder co.
-	body, err := json.Marshal(co)
+	// make body from ChildOrder b.
+	body, err := json.Marshal(b)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -263,8 +263,97 @@ func (c *Client) GetMyOrder(product, count, before, after, childOrderState strin
 	return odrs
 }
 
-// TODO: 個別注文キャンセルを実装する
-// TODO: 全注文キャンセルを実装する
+// ChildOrderCanceled is a json struct to cancel the product.
+type ChildOrderCanceled struct {
+	ProductCode string `json:"product_code"`
+	// e.g. "BTC_JPY", "FX_BTC_JPY", "ETH_BTC".
+	ChildOrderID string `json:"child_order_id"`
+	// The oder ID you want to cancel.
+}
+
+// CancelOrder cancels your ACTIVE orders specified by ChildOrderID.
+// If successfully canceled, returns 0, although it returns -1 when it is failed.
+// product is a paramter represented the makert you want to cancel the orders.
+// e.g. "BTC_JPY", "FX_BTC_JPY", "ETH_BTC".
+func (c *Client) CancelOrder(b ChildOrderCanceled) int {
+	// set timeout timer by context package.
+	ctx, cancel := context.WithTimeout(context.Background(), timeout*time.Second)
+	defer cancel()
+
+	// make body from ChildOrder b.
+	body, err := json.Marshal(b)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// make new request to send order.
+	method := "POST"
+	spath := "/v1/me/cancelchildorder"
+	req, err := c.NewRequest(ctx, method, spath, strings.NewReader(string(body)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// set authentication header to req
+	SetPrivateHeader(req, method, spath, string(body))
+
+	// send a http request and get a response.
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if resp.StatusCode == http.StatusOK {
+		return 0
+	}
+
+	return -1
+}
+
+// ChildOrderAllCanceled is a json struct to cancel the product.
+type ChildOrderAllCanceled struct {
+	ProductCode string `json:"product_code"`
+	// e.g. "BTC_JPY", "FX_BTC_JPY", "ETH_BTC".
+}
+
+// CancelAllOrder cancels all your ACTIVE orders.
+// If successfully canceled, returns 0, although it returns -1 when it is failed.
+// product is a paramter represented the makert you want to cancel the orders.
+// e.g. "BTC_JPY", "FX_BTC_JPY", "ETH_BTC".
+func (c *Client) CancelAllOrder(b ChildOrderAllCanceled) int {
+	// set timeout timer by context package.
+	ctx, cancel := context.WithTimeout(context.Background(), timeout*time.Second)
+	defer cancel()
+
+	// make body from ChildOrder b.
+	body, err := json.Marshal(b)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// make new request to send order.
+	method := "POST"
+	spath := "/v1/me/cancelallchildorders"
+	req, err := c.NewRequest(ctx, method, spath, strings.NewReader(string(body)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// set authentication header to req
+	SetPrivateHeader(req, method, spath, string(body))
+
+	// send a http request and get a response.
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if resp.StatusCode == http.StatusOK {
+		return 0
+	}
+
+	return -1
+}
 
 // SetPrivateHeader sets authentication header to req.
 func SetPrivateHeader(req *http.Request, method, spath, body string) {
