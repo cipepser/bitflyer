@@ -26,8 +26,15 @@ func main() {
 	// fmt.Println(b)
 
 	// Tickerの取得
-	t := c.GetTicker("FX_BTC_JPY")
-	fmt.Println(t)
+	// t := c.GetTicker("FX_BTC_JPY")
+	// fmt.Println(t)
+
+	// 約定履歴の取得
+	es := c.GetExecutions("FX_BTC_JPY", "", "", "")
+	for _, e := range es {
+		fmt.Println(e)
+		fmt.Println("---------------")
+	}
 
 	// 証拠金の取得
 	// col := c.GetCollateral()

@@ -99,7 +99,7 @@ func (c *Client) GetTicker(product string) Ticker {
 		vals.Add("product_code", product)
 	}
 
-	// make new request to get market board information.
+	// make new request to get market ticker information.
 	req, err := c.NewRequest(ctx, "GET", "/v1/getticker", nil)
 	if err != nil {
 		log.Fatal(err)
@@ -114,7 +114,7 @@ func (c *Client) GetTicker(product string) Ticker {
 		log.Fatal(err)
 	}
 
-	// decode http response as type Board.
+	// decode http response as type Ticker.
 	t := Ticker{}
 	err = DecodeBody(resp, &t)
 	if err != nil {
@@ -124,7 +124,68 @@ func (c *Client) GetTicker(product string) Ticker {
 	return t
 }
 
-// TODO: 約定履歴の実装
+// Execution is a json struct for market executions information.
+type Execution struct {
+	ID                         float64 `json:"id"`
+	Side                       string  `json:"side"`
+	Price                      float64 `json:"price"`
+	Size                       float64 `json:"size"`
+	ExecDate                   string  `json:"exec_date"`
+	BuyChildOrderAcceptanceID  string  `json:"buy_child_order_acceptance_id"`
+	SellChildOrderAcceptanceID string  `json:"sell_child_order_acceptance_id"`
+}
+
+// GetExecutions returns makert executions.
+// [PARAMTERS]
+// product : makert you want to get information.
+// e.g. "BTC_JPY", "FX_BTC_JPY", "ETH_BTC".
+// count : the number of result.
+// before : get the result which have smaller `id` than the `before`.
+// after : get the result which have bigger `id` than the `after`.
+func (c *Client) GetExecutions(product, count, before, after string) []Execution {
+	// set timeout timer by context package.
+	ctx, cancel := context.WithTimeout(context.Background(), timeout*time.Second)
+	defer cancel()
+
+	// prepare query parameters.
+	vals := url.Values{}
+	if product != "" {
+		vals.Add("product_code", product)
+	}
+	if count != "" {
+		vals.Add("count", count)
+	}
+	if before != "" {
+		vals.Add("before", before)
+	}
+	if after != "" {
+		vals.Add("after", after)
+	}
+
+	// make new request to get market executions.
+	req, err := c.NewRequest(ctx, "GET", "/v1/getexecutions", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// embed vals to URL as query paramters.
+	req.URL.RawQuery = vals.Encode()
+
+	// send a http request and get a response.
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// decode http response as type []Execution.
+	es := []Execution{}
+	err = DecodeBody(resp, &es)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return es
+}
 
 // ************** private API **************
 
