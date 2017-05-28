@@ -69,6 +69,9 @@ func (c *Client) GetBoard(product string) Board {
 	return b
 }
 
+// TODO: Tickerの実装
+// TODO: 約定履歴の実装
+
 // ************** private API **************
 
 // Collateral is a json struct for your private collateral information.
