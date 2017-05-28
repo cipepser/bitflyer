@@ -1,6 +1,11 @@
 package main
 
-import "io"
+import (
+	"fmt"
+	"io"
+
+	"./sdk"
+)
 
 func test(s string, b io.Reader) {
 	return
@@ -14,11 +19,15 @@ const (
 )
 
 func main() {
-	// c, _ := sdk.NewClient(URL, "user", "passwd", nil)
+	c, _ := sdk.NewClient(URL, "user", "passwd", nil)
 
 	// 板情報の取得
 	// b := c.GetBoard("FX_BTC_JPY")
 	// fmt.Println(b)
+
+	// Tickerの取得
+	t := c.GetTicker("FX_BTC_JPY")
+	fmt.Println(t)
 
 	// 証拠金の取得
 	// col := c.GetCollateral()

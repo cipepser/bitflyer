@@ -69,7 +69,61 @@ func (c *Client) GetBoard(product string) Board {
 	return b
 }
 
-// TODO: Tickerの実装
+// Ticker is a json struct for market ticker information.
+type Ticker struct {
+	ProductCode     string  `json:"product_code"`
+	Timestamp       string  `json:"timestamp"`
+	TickID          float64 `json:"tick_id"`
+	BestBid         float64 `json:"best_bid"`
+	BestAsk         float64 `json:"best_ask"`
+	BestBidSize     float64 `json:"best_bid_size"`
+	BestAskSize     float64 `json:"best_ask_size"`
+	TotalBidDepth   float64 `json:"total_bid_depth"`
+	TotalAskDepth   float64 `json:"total_ask_depth"`
+	Ltp             float64 `json:"ltp"`
+	Volume          float64 `json:"volume"`
+	VolumeByProduct float64 `json:"volume_by_product"`
+}
+
+// GetTicker returns makert ticker information.
+// product is a paramter represented the makert you want to get information.
+// e.g. "BTC_JPY", "FX_BTC_JPY", "ETH_BTC".
+func (c *Client) GetTicker(product string) Ticker {
+	// set timeout timer by context package.
+	ctx, cancel := context.WithTimeout(context.Background(), timeout*time.Second)
+	defer cancel()
+
+	// prepare query parameters.
+	vals := url.Values{}
+	if product != "" {
+		vals.Add("product_code", product)
+	}
+
+	// make new request to get market board information.
+	req, err := c.NewRequest(ctx, "GET", "/v1/getticker", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// embed vals to URL as query paramters.
+	req.URL.RawQuery = vals.Encode()
+
+	// send a http request and get a response.
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// decode http response as type Board.
+	t := Ticker{}
+	err = DecodeBody(resp, &t)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return t
+}
+
 // TODO: 約定履歴の実装
 
 // ************** private API **************
