@@ -1,6 +1,9 @@
 package main
 
-import "./myUtil"
+import (
+	"./myUtil"
+	"./sdk"
+)
 
 const (
 	// URL is a end point of bitflyer api.
@@ -10,23 +13,21 @@ const (
 )
 
 func main() {
-	// c, _ := sdk.NewClient(URL, "user", "passwd", nil)
-	// es := c.GetExecutions("FX_BTC_JPY", "", "", "")
+	c, _ := sdk.NewClient(URL, "user", "passwd", nil)
+	es := c.GetExecutions("FX_BTC_JPY", "", "", "")
 
-	// x := make([]float64, len(es))
-	// for i, e := range es {
-	// x[i] = e.Price
-	// fmt.Println(e)
-	// 	fmt.Println("---------------")
-	// }
-
-	x := make([]float64, 10)
-	// y := make([]float64, 10)
-	for i := 0; i < len(x); i++ {
-		x[i] = (float64(i) - 3) * (float64(i) - 7) * float64(i)
-		// x[i] = float64(i)
-		// y[i] = (float64(i) - 3) * (float64(i) - 7) * float64(i)
+	x := make([]float64, len(es))
+	for i, e := range es {
+		x[i] = e.Price
 	}
+
+	// x := make([]float64, 10)
+	// y := make([]float64, 10)
+	// for i := 0; i < len(x); i++ {
+	// x[i] = (float64(i) - 3) * (float64(i) - 7) * float64(i)
+	// x[i] = float64(i)
+	// y[i] = (float64(i) - 3) * (float64(i) - 7) * float64(i)
+	// }
 
 	// fmt.Println(x)
 
