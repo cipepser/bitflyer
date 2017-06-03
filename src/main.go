@@ -2,14 +2,35 @@ package main
 
 import "./myUtil"
 
+const (
+	// URL is a end point of bitflyer api.
+	URL = "https://api.bitflyer.jp"
+
+// timeout = 10
+)
+
 func main() {
-	x := make([]float64, 100)
-	y := make([]float64, 100)
+	// c, _ := sdk.NewClient(URL, "user", "passwd", nil)
+	// es := c.GetExecutions("FX_BTC_JPY", "", "", "")
+
+	// x := make([]float64, len(es))
+	// for i, e := range es {
+	// x[i] = e.Price
+	// fmt.Println(e)
+	// 	fmt.Println("---------------")
+	// }
+
+	x := make([]float64, 10)
+	// y := make([]float64, 10)
 	for i := 0; i < len(x); i++ {
-		x[i] = float64(i)
-		y[i] = 2 * x[i]
+		x[i] = (float64(i) - 3) * (float64(i) - 7) * float64(i)
+		// x[i] = float64(i)
+		// y[i] = (float64(i) - 3) * (float64(i) - 7) * float64(i)
 	}
 
-	myUtil.MyPlot(x, y)
+	// fmt.Println(x)
+
+	// myUtil.MyScatter(x, y)
+	myUtil.MySingleScatter(x)
 
 }
