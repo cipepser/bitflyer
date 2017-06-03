@@ -1,13 +1,15 @@
 package main
 
-import "github.com/cipepser/bitflyer/src/sdk"
-
-const (
-	// URL is a end point of bitflyer api.
-	URL = "https://api.bitflyer.jp"
-)
+import "./myUtil"
 
 func main() {
-	c, _ := sdk.NewClient(URL, "user", "passwd", nil)
+	x := make([]float64, 100)
+	y := make([]float64, 100)
+	for i := 0; i < len(x); i++ {
+		x[i] = float64(i)
+		y[i] = 2 * x[i]
+	}
+
+	myUtil.MyPlot(x, y)
 
 }
