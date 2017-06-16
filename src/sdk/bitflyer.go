@@ -15,6 +15,10 @@ import (
 	"time"
 )
 
+const (
+	TimeLayout = "2006-01-02T03:04:05"
+)
+
 // ************** public API **************
 
 // Board is a json struct for market board information.
