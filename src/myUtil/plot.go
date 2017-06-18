@@ -201,7 +201,6 @@ func MyPlotWithScatter(x, y []float64) {
 	}
 }
 
-// func MyCanclePlot(x [][4]float64) {
 func MyCandleChart() {
 	c := candle{
 		start: 2,
@@ -215,47 +214,12 @@ func MyCandleChart() {
 		panic(err)
 	}
 
-	// rand.Seed(int64(0))
-	// n := 10
-	// uniform := make(plotter.Values, n)
-	// for i := 0; i < n; i++ {
-	// 	uniform[i] = rand.Float64()
-	// }
-
 	w := vg.Points(20)
-	// b, err := plotter.NewBoxPlot(w, 0, uniform)
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// tmp := []float64{3, 4, 5, 6}
 
 	cc, err := NewCandleChart(w, 0, c)
 	if err != nil {
 		panic(err)
 	}
-	// fmt.Println(cc)
-	// b.Values = tmp
-	// b.Median = 3
-
-	// b.AdjLow = math.Inf(1)
-	// fmt.Println(b.Location)
-
-	// low := b.Quartile1 - 1.5*(b.Quartile3-b.Quartile1)
-	// high := b.Quartile3 + 1.5*(b.Quartile3-b.Quartile1)
-	// for i, v := range b.Values {
-	// 	if v > high || v < low {
-	// 		b.Outside = append(b.Outside, i)
-	// 		continue
-	// 	}
-	// 	if v < b.AdjLow {
-	// 		b.AdjLow = v
-	// 	}
-	// 	if v > b.AdjHigh {
-	// 		b.AdjHigh = v
-	// 	}
-	// }
-
-	// fmt.Println(b)
 
 	p.Add(cc)
 
