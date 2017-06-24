@@ -13,17 +13,13 @@ import (
 
 var (
 	PositiveLineStyle = draw.LineStyle{
-		Color:    color.Black,
-		Width:    vg.Points(1),
-		Dashes:   []vg.Length{},
-		DashOffs: 0,
+		Color: color.Black,
+		Width: vg.Points(1),
 	}
 
 	NegativeLineStyle = draw.LineStyle{
-		Color:    color.Black,
-		Width:    vg.Points(1),
-		Dashes:   []vg.Length{},
-		DashOffs: 0,
+		Color: color.Black,
+		Width: vg.Points(1),
 	}
 )
 
@@ -160,6 +156,7 @@ func MyScatter(x, y []float64) {
 	}
 }
 
+// MyPlotWithScatter draw plot and scatter at once.
 func MyPlotWithScatter(x, y []float64) {
 	if len(x) != len(y) {
 		log.Fatal("length of x and y have to same.")
@@ -201,27 +198,31 @@ func MyPlotWithScatter(x, y []float64) {
 	}
 }
 
-func MyCandleChart() {
-	c := candle{
-		start: 2,
-		end:   3,
-		min:   1,
-		max:   4,
-	}
-
+// MyCandleChart draw the candle chart with data.
+// ts represents the time which used as label.
+func MyCandleChart(ts []string, data [][]float64) {
 	p, err := plot.New()
 	if err != nil {
 		panic(err)
 	}
 
-	w := vg.Points(20)
-
-	cc, err := NewCandleChart(w, 0, c)
+	cc, err := NewCandleChart(data)
 	if err != nil {
 		panic(err)
 	}
 
 	p.Add(cc)
+
+	tunit := "min"
+	cunit := "yen"
+	p.Title.Text = "Candle Chart"
+	p.X.Label.Text = "Time [" + tunit + "]"
+	p.Y.Label.Text = "Price [" + cunit + "]"
+
+	p.NominalX(ts...)
+
+	p.X.Min = -0.5
+	p.X.Max = float64(len(data)) * 3
 
 	file := "img.png"
 	if err = p.Save(10*vg.Inch, 6*vg.Inch, file); err != nil {

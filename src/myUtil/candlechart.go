@@ -1,8 +1,8 @@
 package myUtil
 
 import (
-	"errors"
 	"image/color"
+	"math"
 
 	"github.com/gonum/plot"
 	"github.com/gonum/plot/plotter"
@@ -10,38 +10,97 @@ import (
 	"github.com/gonum/plot/vg/draw"
 )
 
-type candle struct {
-	start, end, max, min float64
-}
+// Candle represents a candle given data which give the start,
+// end, low and high value.
+type Candle struct {
+	// X is used by taking the label of x to right space.
+	X float64
 
-type fourStatPlot struct {
-	// Location is the location of the box along its axis.
-	Location float64
+	// start and end are the first and last value of the period respectively.
+	// low and high are the lowest and highest value of the period respectively.
+	start, end, low, high float64
 
-	// Color is the fill color of the candle.
+	// Color is the fill color of the candle, which represents positive line and negative line.
 	Color color.Color
-
-	// Start and End are the first and last value of the period respectively.
-	Start, End float64
-
-	// Low and High are the lowest and highest value of the period respectively.
-	Low, High float64
 }
 
+// NewCandle construct an object for type Candle,
+// with the given x and data.
+func NewCandle(x float64, data []float64) (*Candle, error) {
+	c := new(Candle)
+
+	c.X = x
+
+	c.start = data[0]
+	c.end = data[len(data)-1]
+
+	if c.start > c.end {
+		c.Color = color.Black
+	} else {
+		c.Color = color.White
+	}
+
+	c.low = data[0]
+	c.high = data[0]
+
+	for _, d := range data {
+		c.low = math.Min(c.low, d)
+		c.high = math.Max(c.high, d)
+	}
+
+	return c, nil
+}
+
+// Candles is a slice of Candle.
+type Candles struct {
+	candles []Candle
+}
+
+// NewCandles construct an object for type Candles,
+// with the data.
+func NewCandles(data [][]float64) ([]Candle, error) {
+	cs := make([]Candle, len(data))
+	for i, d := range data {
+		c, err := NewCandle(float64(i), d)
+		if err != nil {
+			return nil, err
+		}
+		cs[i] = *c
+	}
+
+	return cs, nil
+}
+
+// getMax returns the largest value of candles.
+func getMax(cs []Candle) float64 {
+	max := cs[0].high
+
+	for _, c := range cs {
+		if max < c.high {
+			max = c.high
+		}
+	}
+
+	return max
+}
+
+// getMax returns the smallest value of candles.
+func getMin(cs []Candle) float64 {
+	min := cs[0].low
+
+	for _, c := range cs {
+		if min > c.low {
+			min = c.low
+		}
+	}
+
+	return min
+}
+
+// CandleChart implements the Plotter interface, drawing
+// a candle chart of candles.
 type CandleChart struct {
-	fourStatPlot
-
-	// Offset is added to the x location of each candle.
-	// When the Offset is zero, the candles are drawn
-	// centered at their x location.
-	Offset vg.Length
-
-	// Width is the width used to draw the candle.
-	Width vg.Length
-
-	// CapWidth is the width of the cap used to top
-	// off a whisker.
-	CapWidth vg.Length
+	Candles
 
 	// GlyphStyle is the style of the outside point glyphs.
 	GlyphStyle draw.GlyphStyle
@@ -49,98 +108,87 @@ type CandleChart struct {
 	// CandleStyle is the line style for the candle.
 	CandleStyle draw.LineStyle
 
-	// MedianStyle is the line style for the median line.
-	MedianStyle draw.LineStyle
-
-	// WhiskerStyle is the line style used to draw the
-	// whiskers.
+	// WhiskerStyle is the line style used to draw the whiskers.
 	WhiskerStyle draw.LineStyle
 
-	// Min and Max are the extreme values of the data.
+	// Min and Max are the canvas size for Y-axis.
 	Min, Max float64
 }
 
-func NewCandleChart(w vg.Length, loc float64, c candle) (*CandleChart, error) {
-	if w < 0 {
-		return nil, errors.New("Negative candlechart width")
-	}
-
+// CandleChart creates as new candle chart plotter for
+// the given data.
+func NewCandleChart(data [][]float64) (*CandleChart, error) {
 	cc := new(CandleChart)
+
 	var err error
-	if cc.fourStatPlot, err = newfourStatPlot(loc, c); err != nil {
+	cc.candles, err = NewCandles(data)
+	if err != nil {
 		return nil, err
 	}
 
-	cc.Width = w
-	cc.Min = c.min * 0.8
-	cc.Max = c.max * 1.2
+	cc.Min = getMin(cc.candles) * 0.9
+	cc.Max = getMax(cc.candles) * 1.1
 
 	cc.GlyphStyle = plotter.DefaultGlyphStyle
 	cc.CandleStyle = NegativeLineStyle
 	cc.WhiskerStyle = draw.LineStyle{
 		Width: vg.Points(1),
 	}
-	return cc, nil
-}
-
-func newfourStatPlot(loc float64, c candle) (fourStatPlot, error) {
-	var cc fourStatPlot
-	cc.Location = loc
-
-	if c.start < c.end {
-		cc.Start = c.start
-		cc.End = c.end
-	} else {
-		cc.Start = c.end
-		cc.End = c.start
-	}
-
-	cc.Color = color.Black
-
-	cc.Low = c.min
-	cc.High = c.max
 
 	return cc, nil
 }
 
+// Plot implements the Plot method of the plot.Plotter interface.
 func (cc *CandleChart) Plot(c draw.Canvas, plt *plot.Plot) {
 	trX, trY := plt.Transforms(&c)
-	x := trX(cc.Location)
-	if !c.ContainsX(x) {
+
+	var w vg.Length
+	if len(cc.candles) < 2 {
 		return
-	}
-	x += cc.Offset
-
-	q1 := trY(cc.Start)
-	q3 := trY(cc.End)
-	Low := trY(cc.Low)
-	High := trY(cc.High)
-
-	pts := []vg.Point{
-		{x - cc.Width/2, q1},
-		{x - cc.Width/2, q3},
-		{x + cc.Width/2, q3},
-		{x + cc.Width/2, q1},
-		{x - cc.Width/2 - cc.CandleStyle.Width/2, q1},
+	} else {
+		w = trX(cc.candles[1].X) - trX(cc.candles[0].X)
 	}
 
-	poly := c.ClipPolygonY(pts)
-	c.FillPolygon(cc.Color, poly)
+	for _, candle := range cc.candles {
+		x := trX(candle.X)
 
-	box := c.ClipLinesY(pts)
-	c.StrokeLines(cc.CandleStyle, box...)
+		l := trY(candle.low)
+		h := trY(candle.high)
+		var q1, q3 vg.Length
 
-	whisks := c.ClipLinesY([]vg.Point{{x, q3}, {x, High}},
-		[]vg.Point{{x, High}, {x, High}},
-		[]vg.Point{{x, q1}, {x, Low}},
-		[]vg.Point{{x, Low}, {x, Low}})
-	c.StrokeLines(cc.WhiskerStyle, whisks...)
+		if candle.start < candle.end {
+			q1 = trY(candle.start)
+			q3 = trY(candle.end)
+		} else {
+			q1 = trY(candle.end)
+			q3 = trY(candle.start)
+		}
+
+		pts := []vg.Point{
+			{x - w/2, q1},
+			{x - w/2, q3},
+			{x + w/2, q3},
+			{x + w/2, q1},
+			{x - w/2 - cc.CandleStyle.Width/2, q1},
+		}
+
+		poly := c.ClipPolygonY(pts)
+		c.FillPolygon(candle.Color, poly)
+
+		box := c.ClipLinesY(pts)
+		c.StrokeLines(cc.CandleStyle, box...)
+
+		whisks := c.ClipLinesY([]vg.Point{{x, q3}, {x, h}},
+			[]vg.Point{{x, h}, {x, h}},
+			[]vg.Point{{x, q1}, {x, l}},
+			[]vg.Point{{x, l}, {x, l}})
+		c.StrokeLines(cc.WhiskerStyle, whisks...)
+	}
 
 }
 
-// DataRange returns the minimum and maximum x
-// and y values, implementing the plot.DataRanger
-// interface.
-func (cc *CandleChart) DataRange() (float64, float64, float64, float64) {
-	return cc.Location, cc.Location, cc.Min, cc.Max
+// DataRange implements the DataRange method
+// of the plot.DataRanger interface.
+func (cc *CandleChart) DataRange() (xmin, xmax, ymin, ymax float64) {
+	return 0, float64(len(cc.candles)) * 1.3, cc.Min, cc.Max
 }
