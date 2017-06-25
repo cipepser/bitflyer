@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
+	"./myUtil"
 	_ "github.com/go-sql-driver/mysql"
 )
 
@@ -17,25 +19,36 @@ const (
 )
 
 func main() {
-	// c, _ := sdk.NewClient(URL, "user", "passwd", nil)
-	//
-	// es := c.GetExecutions("FX_BTC_JPY", "", "", "")
-	// lid := es[0].ID
-	//
-	// for {
-	// 	for i := 0; i < len(es); i++ {
-	// 		fmt.Println(strconv.FormatFloat(es[len(es)-1-i].ID, 'f', 0, 64), ": ", es[len(es)-1-i].Price, "円 x ", es[len(es)-1-i].Size)
-	// 	}
-	//
-	// 	time.Sleep(5 * time.Second)
-	// 	lid = es[0].ID
-	// 	es = c.GetExecutions("FX_BTC_JPY", "", "", strconv.FormatFloat(lid, 'f', 0, 64))
-	// }
+	bu := myUtil.BarUnit{
+		T: 1,
+		// Unit: myUtil.FormatSecond,
+		Unit: myUtil.FormatMinute,
+		// Unit: myUtil.FormatHour,
 
-	// tmp := [4]float64{1, 2, 3, 4}
+		// Unit: myUtil.FormatDay,
+		// Unit: myUtil.FormatMonth,
+		// Unit: myUtil.FormatYear,
+	}
 
-	// x := [][4]float64{tmp, tmp}
-	// ts := []string{"2017-06-17 15:34:47.930000", "2017-06-17 15:35:47.930000", "2017-06-17 15:36:47.930000", "aa", "aaa", "aaa"}
+	start := "2017-06-01T12:00"
+	end := "2017-06-01T12:20"
+
+	s, err := time.Parse(bu.Unit, start)
+	if err != nil {
+		log.Fatal(err)
+	}
+	e, err := time.Parse(bu.Unit, end)
+	if err != nil {
+		log.Fatal(err)
+	}
+	d := e.Sub(s)
+
+	n, err := myUtil.GetNofCandle(d, bu)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	btw, ts := myUtil.GetTimeDuration(s, n, bu)
 
 	db, err := sql.Open("mysql", "root:"+os.Getenv("MYSQL_PASSWD")+"@/"+database)
 	defer db.Close()
@@ -44,12 +57,10 @@ func main() {
 	}
 
 	var data [][]float64
-	n := 1
-
-	for i := 0; i < n; i++ {
+	fmt.Println(len(btw) - 1)
+	for i := 0; i < len(btw)-1; i++ {
 		// query
-		// q := "select Price from element where n = " + strconv.Itoa(n) + ";"
-		q := "select Price from executions where ExecDate > " + "\"2017-06-24T13:18:22\";"
+		q := "select Price from executions where ExecDate > " + "\"" + btw[i] + "\" and ExecDate < \"" + btw[i+1] + "\";"
 		rows, err := db.Query(q)
 		if err != nil {
 			log.Fatal(err)
@@ -64,20 +75,21 @@ func main() {
 				log.Fatal(err)
 			}
 			d = append(d, price)
-			// fmt.Println(price)
 		}
 		data = append(data, d)
+		fmt.Println(i)
 	}
 
-	fmt.Println(data)
-	// time.Sleep(1 * time.Second)
+	if len(data[0]) == 0 {
+		data[0] = append(data[0], 0)
+		// log.Fata("the length of data[0] is 0.")
+	}
 
-	// ts := []string{"15:34", "35", "36", "37", "38", "39"}
+	for i := 1; i < len(data); i++ {
+		if len(data[i]) == 0 {
+			data[i] = append(data[i], data[i-1][len(data[i-1])-1])
+		}
+	}
 
-	// data := [][]float64{{2, 2, 3, 3, 2, 1, 4, 2, 5, 3}, {4, 2, 6, 0, 2, 1}, {5, 2, 3, 3, 6, 5, 4},
-	// {3, 2, 1, 4}, {2, 0.7, 3}, {2, 4, 1.5}}
-
-	// myUtil.MyCandleChart(ts, data)
-	// myUtil.MyBoxPlot()
-
+	myUtil.MyCandleChart(ts, data, bu)
 }

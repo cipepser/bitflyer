@@ -1,14 +1,51 @@
 package myUtil
 
 import (
+	"errors"
 	"image/color"
 	"math"
+	"strconv"
 
 	"github.com/gonum/plot"
 	"github.com/gonum/plot/plotter"
 	"github.com/gonum/plot/vg"
 	"github.com/gonum/plot/vg/draw"
 )
+
+// TODO: weekly chart
+const (
+	FormatSecond string = "2006-01-02T15:04:05"
+	FormatMinute string = "2006-01-02T15:04"
+	FormatHour   string = "2006-01-02T15"
+	FormatDay    string = "2006-01-02"
+	FormatMonth  string = "2006-01"
+	FormatYear   string = "2006"
+)
+
+func transFormat2Unit(f string) string {
+	switch f {
+	case FormatSecond:
+		return "sec"
+	case FormatMinute:
+		return "min"
+	case FormatHour:
+		return "hrs"
+	case FormatDay:
+		return "day"
+	case FormatMonth:
+		return "mon"
+	case FormatYear:
+		return "yr"
+	default:
+		return ""
+	}
+}
+
+// BarUnit represents time unit for a candle.
+type BarUnit struct {
+	T    int
+	Unit string
+}
 
 // Candle represents a candle given data which give the start,
 // end, low and high value.
@@ -27,6 +64,9 @@ type Candle struct {
 // NewCandle construct an object for type Candle,
 // with the given x and data.
 func NewCandle(x float64, data []float64) (*Candle, error) {
+	if len(data) == 0 {
+		return nil, errors.New("length of data is 0, must have positive length.")
+	}
 	c := new(Candle)
 
 	c.X = x
@@ -115,7 +155,7 @@ type CandleChart struct {
 	Min, Max float64
 }
 
-// CandleChart creates as new candle chart plotter for
+// NewCandleChart creates as new candle chart plotter for
 // the given data.
 func NewCandleChart(data [][]float64) (*CandleChart, error) {
 	cc := new(CandleChart)
@@ -126,11 +166,14 @@ func NewCandleChart(data [][]float64) (*CandleChart, error) {
 		return nil, err
 	}
 
-	cc.Min = getMin(cc.candles) * 0.9
-	cc.Max = getMax(cc.candles) * 1.1
+	cc.Min = getMin(cc.candles)
+	cc.Max = getMax(cc.candles)
 
 	cc.GlyphStyle = plotter.DefaultGlyphStyle
-	cc.CandleStyle = NegativeLineStyle
+	cc.CandleStyle = draw.LineStyle{
+		Color: color.Black,
+		Width: vg.Points(1),
+	}
 	cc.WhiskerStyle = draw.LineStyle{
 		Width: vg.Points(1),
 	}
@@ -140,14 +183,14 @@ func NewCandleChart(data [][]float64) (*CandleChart, error) {
 
 // Plot implements the Plot method of the plot.Plotter interface.
 func (cc *CandleChart) Plot(c draw.Canvas, plt *plot.Plot) {
+	if len(cc.candles) < 2 {
+		return
+	}
+
 	trX, trY := plt.Transforms(&c)
 
 	var w vg.Length
-	if len(cc.candles) < 2 {
-		return
-	} else {
-		w = trX(cc.candles[1].X) - trX(cc.candles[0].X)
-	}
+	w = trX(cc.candles[1].X) - trX(cc.candles[0].X)
 
 	for _, candle := range cc.candles {
 		x := trX(candle.X)
@@ -191,4 +234,20 @@ func (cc *CandleChart) Plot(c draw.Canvas, plt *plot.Plot) {
 // of the plot.DataRanger interface.
 func (cc *CandleChart) DataRange() (xmin, xmax, ymin, ymax float64) {
 	return 0, float64(len(cc.candles)) * 1.3, cc.Min, cc.Max
+}
+
+type rawTicks struct{}
+
+// Ticks computes the default tick marks, but the labels
+// are printed as raw number not float fromat.
+func (rawTicks) Ticks(min, max float64) []plot.Tick {
+	tks := plot.DefaultTicks{}.Ticks(min, max)
+	for i, t := range tks {
+		if t.Label == "" { // Skip minor ticks, they are fine.
+			continue
+		}
+		s, _ := strconv.ParseFloat(t.Label, 64)
+		tks[i].Label = strconv.FormatFloat(s, 'f', 0, 64)
+	}
+	return tks
 }
