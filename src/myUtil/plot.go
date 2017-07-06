@@ -218,7 +218,7 @@ func MyCandleChart(ts []string, data [][]float64, bu BarUnit) {
 	p.NominalX(ts...)
 
 	p.X.Min = -0.5
-	p.X.Max = float64(len(data)) * 3
+	p.X.Max = float64(len(data)) * 1.1
 
 	file := "img.png"
 	if err = p.Save(10*vg.Inch, 6*vg.Inch, file); err != nil {

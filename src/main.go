@@ -20,18 +20,18 @@ const (
 
 func main() {
 	bu := myUtil.BarUnit{
-		T: 1,
+		T: 4,
 		// Unit: myUtil.FormatSecond,
-		Unit: myUtil.FormatMinute,
-		// Unit: myUtil.FormatHour,
+		// Unit: myUtil.FormatMinute,
+		Unit: myUtil.FormatHour,
 
 		// Unit: myUtil.FormatDay,
 		// Unit: myUtil.FormatMonth,
 		// Unit: myUtil.FormatYear,
 	}
 
-	start := "2017-06-01T12:00"
-	end := "2017-06-01T12:20"
+	start := "2017-06-27T12"
+	end := "2017-07-03T14"
 
 	s, err := time.Parse(bu.Unit, start)
 	if err != nil {
@@ -82,7 +82,6 @@ func main() {
 
 	if len(data[0]) == 0 {
 		data[0] = append(data[0], 0)
-		// log.Fata("the length of data[0] is 0.")
 	}
 
 	for i := 1; i < len(data); i++ {
