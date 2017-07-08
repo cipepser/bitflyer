@@ -1,5 +1,5 @@
 moved to following repos.
 
 * https://github.com/cipepser/httpclient
-* https://github.com/cipepser/plot/plotter
-* https://github.com/cipepser/plot/myutil
+* https://github.com/cipepser/plot/tree/master/plotter
+* https://github.com/cipepser/plot/tree/master/myutil
